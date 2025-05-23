@@ -26,6 +26,7 @@ export const useLocationsStore = defineStore('locations', () => {
   const loading = ref(false)
   const error = ref<string | null>(null)
   const userLocations = ref<Location[]>([])
+  const allLocations = ref<Location[]>([])
   const auth = useAuthStore()
 
   async function addLocation(locationData: LocationData) {
@@ -83,6 +84,25 @@ export const useLocationsStore = defineStore('locations', () => {
     }
   }
 
+  async function fetchAllLocations() {
+    loading.value = true
+    error.value = null
+
+    try {
+      const q = query(collection(db, 'locations'))
+      const querySnapshot = await getDocs(q)
+      allLocations.value = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Location[]
+    } catch (e) {
+      error.value = (e as Error).message
+      console.error('Error fetching all locations:', e)
+    } finally {
+      loading.value = false
+    }
+  }
+
   async function updateLocation(locationId: string, updates: Partial<LocationData>) {
     loading.value = true
     error.value = null
@@ -135,8 +155,10 @@ export const useLocationsStore = defineStore('locations', () => {
     loading,
     error,
     userLocations,
+    allLocations,
     addLocation,
     fetchUserLocations,
+    fetchAllLocations,
     updateLocation,
     deleteLocation
   }

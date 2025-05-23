@@ -62,20 +62,24 @@ interface Props {
   }
 }
 
-const DEFAULT_CENTER: LatLngTuple = [47.6062, -122.3321] // Seattle
+// Ensure the center coordinates are always exactly two numbers
+type MapCenter = [number, number]
+
+const DEFAULT_CENTER: MapCenter = [47.6062, -122.3321] // Seattle
 const DEFAULT_ZOOM = 13
 
 const props = defineProps<Props>()
 const emit = defineEmits(['update:modelValue'])
 
 const zoom = ref(DEFAULT_ZOOM)
-const center = ref<LatLngTuple>(DEFAULT_CENTER)
-const markerPosition = ref<LatLngTuple | null>(null)
+const center = ref<MapCenter>(DEFAULT_CENTER)
+const markerPosition = ref<MapCenter | null>(null)
 const addressInput = ref(props.modelValue.address)
 const isGeocoding = ref(false)
 const hasValidCoordinates = ref(false)
 const isMapReady = ref(false)
 const map = ref<any>(null)
+const isReverseGeocoding = ref(false)
 
 // Initialize marker if coordinates exist and are valid
 const initializeWithCoordinates = () => {
@@ -84,7 +88,7 @@ const initializeWithCoordinates = () => {
       typeof props.modelValue.coordinates.lng === 'number' &&
       !isNaN(props.modelValue.coordinates.lat) && 
       !isNaN(props.modelValue.coordinates.lng)) {
-    const pos: LatLngTuple = [props.modelValue.coordinates.lat, props.modelValue.coordinates.lng]
+    const pos: MapCenter = [props.modelValue.coordinates.lat, props.modelValue.coordinates.lng]
     markerPosition.value = pos
     center.value = pos
     hasValidCoordinates.value = true
@@ -119,7 +123,7 @@ watch(() => props.modelValue.coordinates, (newCoords) => {
       typeof newCoords.lng === 'number' &&
       !isNaN(newCoords.lat) && 
       !isNaN(newCoords.lng)) {
-    const pos: LatLngTuple = [newCoords.lat, newCoords.lng]
+    const pos: MapCenter = [newCoords.lat, newCoords.lng]
     markerPosition.value = pos
     center.value = pos
     hasValidCoordinates.value = true
@@ -150,7 +154,7 @@ const geocodeAddress = async () => {
       const lng = parseFloat(data[0].lon)
       
       if (!isNaN(lat) && !isNaN(lng)) {
-        const newPos: LatLngTuple = [lat, lng]
+        const newPos: MapCenter = [lat, lng]
         markerPosition.value = newPos
         center.value = newPos
         zoom.value = 16
@@ -176,15 +180,36 @@ const geocodeAddress = async () => {
 
 const debouncedGeocodeAddress = debounce(geocodeAddress, 1000)
 
+const reverseGeocode = async (lat: number, lng: number) => {
+  if (isReverseGeocoding.value) return
+  
+  isReverseGeocoding.value = true
+  try {
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`
+    )
+    const data = await response.json()
+
+    if (data && data.display_name) {
+      addressInput.value = data.display_name
+      emit('update:modelValue', {
+        address: data.display_name,
+        coordinates: { lat, lng }
+      })
+    }
+  } catch (error) {
+    console.error('Error reverse geocoding:', error)
+  } finally {
+    isReverseGeocoding.value = false
+  }
+}
+
 const handleMapClick = (event: LeafletMouseEvent) => {
   const { lat, lng } = event.latlng
   if (!isNaN(lat) && !isNaN(lng)) {
     markerPosition.value = [lat, lng]
     hasValidCoordinates.value = true
-    emit('update:modelValue', {
-      address: addressInput.value,
-      coordinates: { lat, lng }
-    })
+    reverseGeocode(lat, lng)
   }
 }
 
@@ -193,12 +218,12 @@ const handleMarkerDragend = (event: any) => {
   if (!isNaN(lat) && !isNaN(lng)) {
     markerPosition.value = [lat, lng]
     hasValidCoordinates.value = true
-    emit('update:modelValue', {
-      address: addressInput.value,
-      coordinates: { lat, lng }
-    })
+    reverseGeocode(lat, lng)
   }
 }
+
+// Add a debounced version of reverseGeocode to prevent too many API calls
+const debouncedReverseGeocode = debounce(reverseGeocode, 1000)
 
 defineExpose({
   hasValidCoordinates
