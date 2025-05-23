@@ -71,6 +71,12 @@ const handleLogout = () => {
               <v-divider class="my-2"></v-divider>
               
               <v-list-item
+                to="/locations/my"
+                title="My Locations"
+                prepend-icon="mdi-map-marker"
+              />
+              
+              <v-list-item
                 @click="handleLogout"
                 title="Sign Out"
                 prepend-icon="mdi-logout"

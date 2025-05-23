@@ -1,154 +1,110 @@
 <template>
-  <v-row class="mt-4" v-if="auth.user">
-    <v-col cols="12">
-      <v-card>
-        <v-card-title class="text-h5">
-          Add a Pickleball Location
-        </v-card-title>
-        <v-card-text>
-          <v-form
-            class="mt-4"
-            ref="formRef"
-            v-model="isFormValid"
-          >
-            <v-text-field
-              v-model="form.name"
-              label="Location Name"
-              required
-              variant="outlined"
-              :rules="[v => !!v || 'Location name is required']"
-            ></v-text-field>
+  <v-container>
+    <v-row>
+      <v-col cols="12">
+        <h1 class="text-h4 mb-4">Add a New Location</h1>
+      </v-col>
+    </v-row>
 
-            <v-textarea
-              v-model="form.description"
-              label="Description"
-              variant="outlined"
-              rows="3"
-            ></v-textarea>
+    <v-row>
+      <v-col cols="12">
+        <v-form ref="formRef" v-model="isValid" @submit.prevent="handleSubmit">
+          <v-text-field
+            v-model="form.name"
+            label="Location Name"
+            required
+            variant="outlined"
+            :rules="[v => !!v || 'Location name is required']"
+          ></v-text-field>
 
-            <v-text-field
-              v-model="form.address"
-              label="Address"
-              required
-              variant="outlined"
-              :rules="[v => !!v || 'Address is required']"
-            ></v-text-field>
+          <v-textarea
+            v-model="form.description"
+            label="Description"
+            variant="outlined"
+            rows="3"
+          ></v-textarea>
 
-            <v-row>
-              <v-col cols="12" sm="6">
-                <v-text-field
-                  v-model.number="form.numberOfCourts"
-                  label="Number of Courts"
-                  type="number"
-                  variant="outlined"
-                  min="1"
-                  :rules="[
-                    v => !!v || 'Number of courts is required',
-                    v => v >= 1 || 'Must have at least 1 court'
-                  ]"
-                ></v-text-field>
-              </v-col>
-              <v-col cols="12" sm="6">
-                <v-select
-                  v-model="form.surfaceType"
-                  :items="surfaceTypes"
-                  label="Surface Type"
-                  variant="outlined"
-                  :rules="[v => !!v || 'Surface type is required']"
-                ></v-select>
-              </v-col>
-            </v-row>
+          <LocationPicker
+            ref="locationPickerRef"
+            v-model="locationData"
+            class="mb-4"
+          />
 
-            <v-checkbox
-              v-model="form.isIndoor"
-              label="Indoor Facility"
-            ></v-checkbox>
-          </v-form>
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn
-            color="primary"
-            @click="handleSubmit"
-            :loading="locations.loading"
-            :disabled="locations.loading"
-          >
-            Submit
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-col>
-  </v-row>
-  <v-row v-else class="mt-4">
-    <v-col cols="12">
-      <v-card>
-        <v-card-text class="text-center">
-          <p class="text-h6 mb-4">Please sign in to add a new location</p>
-          <v-btn
-            color="primary"
-            prepend-icon="mdi-google"
-            @click="auth.signInWithGoogle"
-          >
-            Sign in with Google
-          </v-btn>
-        </v-card-text>
-      </v-card>
-    </v-col>
-  </v-row>
+          <v-row>
+            <v-col cols="12" sm="6">
+              <v-text-field
+                v-model.number="form.numberOfCourts"
+                label="Number of Courts"
+                type="number"
+                variant="outlined"
+                min="1"
+                :rules="[
+                  v => !!v || 'Number of courts is required',
+                  v => v >= 1 || 'Must have at least 1 court'
+                ]"
+              ></v-text-field>
+            </v-col>
+            <v-col cols="12" sm="6">
+              <v-select
+                v-model="form.surfaceType"
+                :items="surfaceTypes"
+                label="Surface Type"
+                variant="outlined"
+                :rules="[v => !!v || 'Surface type is required']"
+              ></v-select>
+            </v-col>
+          </v-row>
 
-  <!-- Success/Error Snackbar -->
-  <v-snackbar
-    v-model="snackbar.show"
-    :color="snackbar.color"
-    :timeout="4000"
-  >
-    {{ snackbar.text }}
-    <template v-slot:actions>
-      <v-btn
-        color="white"
-        variant="text"
-        @click="snackbar.show = false"
-      >
-        Close
-      </v-btn>
-    </template>
-  </v-snackbar>
+          <v-checkbox
+            v-model="form.isIndoor"
+            label="Indoor Facility"
+          ></v-checkbox>
+
+          <div class="d-flex justify-end mt-4">
+            <v-btn
+              type="submit"
+              color="primary"
+              size="large"
+              :loading="locations.loading"
+              :disabled="!isValid || locations.loading"
+            >
+              Add Location
+            </v-btn>
+          </div>
+        </v-form>
+      </v-col>
+    </v-row>
+
+    <v-snackbar
+      v-model="snackbar.show"
+      :color="snackbar.color"
+      :timeout="4000"
+    >
+      {{ snackbar.text }}
+      <template v-slot:actions>
+        <v-btn
+          color="white"
+          variant="text"
+          @click="snackbar.show = false"
+        >
+          Close
+        </v-btn>
+      </template>
+    </v-snackbar>
+  </v-container>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
 import { useLocationsStore } from '@/stores/locations'
-import type { LocationData } from '@/types/location'
+import LocationPicker from '@/components/LocationPicker.vue'
 
 const router = useRouter()
-const auth = useAuthStore()
 const locations = useLocationsStore()
 const formRef = ref<any>(null)
-const isFormValid = ref(false)
-
-const form = ref<LocationData>({
-  name: '',
-  description: '',
-  address: '',
-  numberOfCourts: 1,
-  surfaceType: '',
-  isIndoor: false
-})
-
-const snackbar = ref({
-  show: false,
-  color: 'success',
-  text: ''
-})
-
-onMounted(() => {
-  // Double-check authentication status
-  if (!auth.user) {
-    router.push({ name: 'home' })
-  }
-})
+const locationPickerRef = ref<any>(null)
+const isValid = ref(false)
 
 const surfaceTypes = [
   'Concrete',
@@ -158,50 +114,61 @@ const surfaceTypes = [
   'Other'
 ]
 
-const handleSubmit = async () => {
-  if (!auth.user) {
-    router.push({ name: 'home' })
-    return
-  }
+const form = ref({
+  name: '',
+  description: '',
+  numberOfCourts: 1,
+  surfaceType: '',
+  isIndoor: false
+})
 
+const locationData = ref({
+  address: '',
+  coordinates: {
+    lat: 0,
+    lng: 0
+  }
+})
+
+const snackbar = ref({
+  show: false,
+  color: 'success',
+  text: ''
+})
+
+const handleSubmit = async () => {
   const { valid } = await formRef.value?.validate()
+  const hasValidLocation = locationPickerRef.value?.hasValidCoordinates
   
-  if (!valid) {
+  if (!valid || !hasValidLocation) {
     snackbar.value = {
       show: true,
       color: 'error',
-      text: 'Please fill in all required fields correctly'
+      text: !valid 
+        ? 'Please fill in all required fields'
+        : 'Please select a valid location on the map'
     }
     return
   }
 
   try {
-    await locations.addLocation(form.value)
-    snackbar.value = {
-      show: true,
-      color: 'success',
-      text: 'Location added successfully!'
-    }
+    await locations.addLocation({
+      ...form.value,
+      address: locationData.value.address,
+      coordinates: locationData.value.coordinates
+    })
     
-    // Reset form
-    form.value = {
-      name: '',
-      description: '',
-      address: '',
-      numberOfCourts: 1,
-      surfaceType: '',
-      isIndoor: false
-    }
-    formRef.value?.reset()
-    
-    // Navigate to home page after successful submission
-    router.push({ name: 'home' })
+    router.push('/locations/my')
   } catch (error) {
     snackbar.value = {
       show: true,
       color: 'error',
-      text: 'Error adding location. Please try again.'
+      text: 'Error creating location. Please try again.'
     }
   }
 }
-</script> 
+</script>
+
+<style>
+@import 'leaflet/dist/leaflet.css';
+</style> 

@@ -5,4 +5,8 @@ export interface LocationData {
   numberOfCourts: number
   surfaceType: string
   isIndoor: boolean
+  coordinates: {
+    lat: number
+    lng: number
+  }
 } 
