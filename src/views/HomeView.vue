@@ -2,7 +2,6 @@
 import 'leaflet/dist/leaflet.css'
 import { ref, onMounted, computed } from 'vue'
 import { LMap, LTileLayer, LMarker, LPopup } from '@vue-leaflet/vue-leaflet'
-import type { LatLngTuple, LatLngExpression } from 'leaflet'
 import { useLocationsStore } from '@/stores/locations'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
@@ -17,6 +16,7 @@ const router = useRouter()
 const auth = useAuthStore()
 const isLocating = ref(false)
 const locationError = ref<string | null>(null)
+const map = ref<any>(null)
 
 // Compute the map center as a tuple to ensure correct typing
 const mapCenter = computed<MapCenter>(() => center.value)
@@ -29,40 +29,56 @@ const showError = computed({
 })
 
 const getUserLocation = () => {
-  if (!('geolocation' in navigator)) {
-    locationError.value = 'Geolocation is not supported by your browser'
-    return
-  }
+  return new Promise<GeolocationPosition>((resolve, reject) => {
+    if (!('geolocation' in navigator)) {
+      reject(new Error('Geolocation is not supported by your browser'))
+      return
+    }
 
+    navigator.geolocation.getCurrentPosition(resolve, reject, {
+      enableHighAccuracy: true,
+      timeout: 5000,
+      maximumAge: 0
+    })
+  })
+}
+
+const centerOnUserLocation = async () => {
+  if (isLocating.value) return
+  
   isLocating.value = true
   locationError.value = null
 
-  navigator.geolocation.getCurrentPosition(
-    (position) => {
-      center.value = [position.coords.latitude, position.coords.longitude]
+  try {
+    const position = await getUserLocation()
+    center.value = [position.coords.latitude, position.coords.longitude]
+    zoom.value = 12
+
+    // Force map to update its center
+    if (map.value) {
+      map.value.setView(center.value, zoom.value)
+    }
+  } catch (error) {
+    console.error('Error getting location:', error)
+    locationError.value = 'Could not get your location'
+    
+    // If we can't get user's location, center on the first location if available
+    if (locations.allLocations.length > 0) {
+      const firstLocation = locations.allLocations[0]
+      center.value = [firstLocation.coordinates.lat, firstLocation.coordinates.lng]
       zoom.value = 13
-      isLocating.value = false
-    },
-    (error) => {
-      console.error('Error getting location:', error)
-      locationError.value = 'Could not get your location'
-      isLocating.value = false
-      
-      // If we can't get user's location, center on the first location if available
-      if (locations.allLocations.length > 0) {
-        const firstLocation = locations.allLocations[0]
-        center.value = [firstLocation.coordinates.lat, firstLocation.coordinates.lng]
-        zoom.value = 13
-      }
-    },
-    { enableHighAccuracy: true }
-  )
+    }
+  } finally {
+    isLocating.value = false
+  }
 }
 
 onMounted(async () => {
-  // Fetch all locations
+  // First fetch all locations
   await locations.fetchAllLocations()
-  getUserLocation()
+  
+  // Then try to get user location
+  await centerOnUserLocation()
 })
 
 const handleLocationClick = (locationId: string) => {
@@ -75,6 +91,10 @@ const handleLocationClick = (locationId: string) => {
     return
   }
   router.push(`/locations/${locationId}`)
+}
+
+const onMapReady = (mapInstance: any) => {
+  map.value = mapInstance
 }
 </script>
 
@@ -91,11 +111,11 @@ const handleLocationClick = (locationId: string) => {
     <v-btn
       class="location-button"
       color="primary"
-      icon="mdi-crosshairs-gps"
       size="large"
-      @click="getUserLocation"
       :loading="isLocating"
+      @click="centerOnUserLocation"
     >
+      <v-icon icon="mdi-crosshairs-gps"></v-icon>
       <v-tooltip
         activator="parent"
         location="left"
@@ -127,6 +147,7 @@ const handleLocationClick = (locationId: string) => {
       v-model:zoom="zoom"
       :center="mapCenter"
       :use-global-leaflet="false"
+      @ready="onMapReady"
     >
       <l-tile-layer
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
