@@ -11,6 +11,7 @@ const auth = useAuthStore()
 const isLoggedIn = computed(() => !!auth.user)
 const userEmail = computed(() => auth.user?.email)
 const userName = computed(() => auth.user?.displayName)
+const isAdmin = computed(() => auth.user?.email === 'riouxjo@gmail.com')
 
 const handleLogin = () => {
   auth.signInWithGoogle()
@@ -25,7 +26,7 @@ const handleLogout = () => {
   <v-app>
     <v-app-bar color="primary">
       <v-app-bar-title>Pickleball Finder</v-app-bar-title>
-      <v-btn to="/" text>Home</v-btn>
+      <v-btn to="/" text>Map</v-btn>
 
       <template v-if="!auth.loading">
         <template v-if="isLoggedIn">
@@ -75,6 +76,13 @@ const handleLogout = () => {
                 title="My Locations"
                 prepend-icon="mdi-map-marker"
               />
+
+              <v-list-item
+                v-if="isAdmin"
+                to="/admin/reports"
+                title="Manage Reports"
+                prepend-icon="mdi-flag"
+              />
               
               <v-list-item
                 @click="handleLogout"
@@ -105,10 +113,37 @@ const handleLogout = () => {
           </v-menu>
         </template>
       </template>
+      <template v-else>
+        <v-btn
+          icon
+          disabled
+          class="ml-2"
+          :loading="true"
+        >
+          <v-icon>mdi-account-circle</v-icon>
+        </v-btn>
+      </template>
     </v-app-bar>
 
     <v-main>
       <slot></slot>
     </v-main>
+
+    <v-snackbar
+      v-model="auth.snackbar.show"
+      :color="auth.snackbar.color"
+      :timeout="4000"
+    >
+      {{ auth.snackbar.text }}
+      <template v-slot:actions>
+        <v-btn
+          color="white"
+          variant="text"
+          @click="auth.snackbar.show = false"
+        >
+          Close
+        </v-btn>
+      </template>
+    </v-snackbar>
   </v-app>
 </template>

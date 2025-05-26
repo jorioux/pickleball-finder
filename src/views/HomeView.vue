@@ -81,18 +81,6 @@ onMounted(async () => {
   await centerOnUserLocation()
 })
 
-const handleLocationClick = (locationId: string) => {
-  if (!auth.user) {
-    // If user is not logged in, show login menu
-    const accountButton = document.querySelector('.mdi-account-circle')?.parentElement
-    if (accountButton) {
-      accountButton.click()
-    }
-    return
-  }
-  router.push(`/locations/${locationId}`)
-}
-
 const onMapReady = (mapInstance: any) => {
   map.value = mapInstance
 }
@@ -158,7 +146,6 @@ const onMapReady = (mapInstance: any) => {
       <template v-for="location in locations.allLocations" :key="location.id">
         <l-marker
           :lat-lng="[location.coordinates.lat, location.coordinates.lng]"
-          @click="handleLocationClick(location.id)"
         >
           <l-popup>
             <div class="location-popup">

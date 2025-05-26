@@ -35,7 +35,7 @@
           :key="location.id"
           cols="12"
         >
-          <v-card>
+          <v-card width="100%">
             <v-card-title>{{ location.name }}</v-card-title>
             <v-card-text>
               <p class="mb-2">{{ location.description }}</p>
@@ -216,7 +216,6 @@
 import { ref, onMounted } from 'vue'
 import { useLocationsStore } from '@/stores/locations'
 import type { Location } from '@/stores/locations'
-import type { LocationData } from '@/types/location'
 import { LMap, LTileLayer, LMarker } from '@vue-leaflet/vue-leaflet'
 import LocationPicker from '@/components/LocationPicker.vue'
 

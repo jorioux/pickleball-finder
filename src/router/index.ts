@@ -27,6 +27,19 @@ const router = createRouter({
       name: 'location-details',
       component: () => import('../views/locations/LocationDetails.vue'),
       meta: { requiresAuth: true }
+    },
+    {
+      path: '/admin/reports',
+      name: 'admin-reports',
+      component: () => import('../views/admin/Reports.vue'),
+      beforeEnter: (to, from, next) => {
+        const auth = useAuthStore()
+        if (auth.user?.email === 'riouxjo@gmail.com') {
+          next()
+        } else {
+          next('/')
+        }
+      }
     }
   ],
 })

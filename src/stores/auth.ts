@@ -9,7 +9,7 @@ import {
   signOut as firebaseSignOut,
   type User
 } from 'firebase/auth'
-import { getFirestore } from 'firebase/firestore'
+import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore'
 import { useRouter } from 'vue-router'
 
 // Your web app's Firebase configuration
@@ -33,6 +33,11 @@ export const useAuthStore = defineStore('auth', () => {
   const loading = ref(true)
   const error = ref<string | null>(null)
   const router = useRouter()
+  const snackbar = ref({
+    show: false,
+    text: '',
+    color: 'success'
+  })
 
   // Initialize auth state listener
   onAuthStateChanged(auth, (newUser) => {
@@ -44,7 +49,21 @@ export const useAuthStore = defineStore('auth', () => {
   async function signInWithGoogle() {
     try {
       const provider = new GoogleAuthProvider()
-      await signInWithPopup(auth, provider)
+      const result = await signInWithPopup(auth, provider)
+      
+      // Save user profile data
+      if (result.user) {
+        const userRef = doc(db, 'users', result.user.uid)
+        const userData = {
+          displayName: result.user.displayName,
+          email: result.user.email,
+          fullName: result.user.displayName, // Use display name as full name initially
+          photoURL: result.user.photoURL,
+          lastSignIn: new Date()
+        }
+        await setDoc(userRef, userData, { merge: true })
+      }
+      
       error.value = null
     } catch (e) {
       error.value = (e as Error).message
@@ -58,9 +77,19 @@ export const useAuthStore = defineStore('auth', () => {
       await firebaseSignOut(auth)
       error.value = null
       router.push({ name: 'home' })
+      snackbar.value = {
+        show: true,
+        text: 'You have been signed out',
+        color: 'success'
+      }
     } catch (e) {
       error.value = (e as Error).message
       console.error('Error signing out:', e)
+      snackbar.value = {
+        show: true,
+        text: 'Error signing out. Please try again.',
+        color: 'error'
+      }
     }
   }
 
@@ -68,6 +97,7 @@ export const useAuthStore = defineStore('auth', () => {
     user,
     loading,
     error,
+    snackbar,
     signInWithGoogle,
     signOut
   }

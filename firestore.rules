@@ -1,0 +1,41 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAdmin() {
+      return request.auth != null && request.auth.token.email == 'riouxjo@gmail.com';
+    }
+
+    // Allow anyone to read locations, but only authenticated users can create
+    // Admin can edit and delete any location
+    match /locations/{locationId} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update, delete: if isAdmin() || 
+        (request.auth != null && request.auth.uid == resource.data.createdBy);
+    }
+
+    // Allow anyone to read comments
+    // Only authenticated users can create comments
+    // Admin can delete any comment, users can only delete their own
+    match /comments/{commentId} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow delete: if isAdmin() || 
+        (request.auth != null && request.auth.uid == resource.data.userId);
+    }
+
+    // Reports can only be created by authenticated users
+    // Only admin can read, update, and delete reports
+    match /reports/{reportId} {
+      allow create: if request.auth != null;
+      allow read, update, delete: if isAdmin();
+    }
+
+    // User profiles can be read by anyone, but only written by the owner
+    match /users/{userId} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+} 
