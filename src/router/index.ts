@@ -32,8 +32,19 @@ const router = createRouter({
       path: '/admin/reports',
       name: 'admin-reports',
       component: () => import('../views/admin/Reports.vue'),
-      beforeEnter: (to, from, next) => {
+      beforeEnter: async (to, from, next) => {
         const auth = useAuthStore()
+        // Wait for auth state to be loaded
+        if (auth.loading) {
+          await new Promise<void>((resolve) => {
+            const unwatch = auth.$subscribe((mutation, state) => {
+              if (!state.loading) {
+                unwatch()
+                resolve()
+              }
+            })
+          })
+        }
         if (auth.user?.email === 'riouxjo@gmail.com') {
           next()
         } else {
@@ -45,9 +56,21 @@ const router = createRouter({
 })
 
 // Navigation guard
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const auth = useAuthStore()
   
+  // Wait for auth state to be loaded
+  if (auth.loading) {
+    await new Promise<void>((resolve) => {
+      const unwatch = auth.$subscribe((mutation, state) => {
+        if (!state.loading) {
+          unwatch()
+          resolve()
+        }
+      })
+    })
+  }
+
   if (to.meta.requiresAuth && !auth.user) {
     // If route requires auth and user is not logged in, redirect to home
     next({ name: 'home' })
