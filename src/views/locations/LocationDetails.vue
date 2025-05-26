@@ -198,18 +198,15 @@ onMounted(async () => {
 
 .details-section {
   padding: 24px;
-  background-color: rgba(0, 0, 0, 0.03);
   border-radius: 4px;
   height: 100%;
 }
 
 .metadata-section {
   font-size: 0.875rem;
-  color: rgba(0, 0, 0, 0.6);
 }
 
 .metadata-section .text-disabled {
-  color: rgba(0, 0, 0, 0.38);
   margin-left: 4px;
 }
 

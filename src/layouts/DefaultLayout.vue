@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useAuthStore } from '@/stores/auth'
+import { useThemeStore } from '@/stores/theme'
 import { computed } from 'vue'
 
 interface Props {
@@ -8,6 +9,7 @@ interface Props {
 const props = defineProps<Props>()
 
 const auth = useAuthStore()
+const theme = useThemeStore()
 const isLoggedIn = computed(() => !!auth.user)
 const userEmail = computed(() => auth.user?.email)
 const userName = computed(() => auth.user?.displayName)
@@ -83,6 +85,12 @@ const handleLogout = () => {
                 title="Manage Reports"
                 prepend-icon="mdi-flag"
               />
+
+              <v-list-item
+                @click="theme.toggleTheme"
+                :title="theme.isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'"
+                :prepend-icon="theme.isDark ? 'mdi-weather-sunny' : 'mdi-weather-night'"
+              />
               
               <v-list-item
                 @click="handleLogout"
@@ -108,6 +116,11 @@ const handleLogout = () => {
                 @click="handleLogin"
                 title="Sign in with Google"
                 prepend-icon="mdi-google"
+              />
+              <v-list-item
+                @click="theme.toggleTheme"
+                :title="theme.isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'"
+                :prepend-icon="theme.isDark ? 'mdi-weather-sunny' : 'mdi-weather-night'"
               />
             </v-list>
           </v-menu>
