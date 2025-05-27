@@ -10,6 +10,7 @@ import {
   type User
 } from 'firebase/auth'
 import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore'
+import { getStorage } from 'firebase/storage'
 import { useRouter } from 'vue-router'
 
 // Your web app's Firebase configuration
@@ -27,6 +28,8 @@ const app = initializeApp(firebaseConfig)
 const auth = getAuth(app)
 // Initialize Firestore
 export const db = getFirestore(app)
+// Initialize Storage
+export const storage = getStorage(app)
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)

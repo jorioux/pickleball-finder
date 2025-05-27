@@ -6,7 +6,7 @@
         variant="tonal"
         v-bind="props"
         prepend-icon="mdi-flag"
-        class="mt-4"
+        class="my-4"
       >
         Report Issue
       </v-btn>
