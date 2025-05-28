@@ -16,4 +16,11 @@ export interface PhotoData {
   url: string
   uploadedBy: string
   uploadedAt: any // Firestore Timestamp
+}
+
+export interface ImageMetadata {
+  url: string
+  uploadedByUid: string
+  uploadedByName: string
+  uploadedAt: any // Firestore Timestamp
 } 

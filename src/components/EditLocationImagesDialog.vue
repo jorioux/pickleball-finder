@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, watch } from 'vue'
 import { useLocationsStore } from '@/stores/locations'
 import { useAuthStore } from '@/stores/auth'
 import imageCompression from 'browser-image-compression'
 import type { ImageMetadata } from '@/types/location'
-import { formatDistanceToNow, format } from 'date-fns'
+import { format } from 'date-fns'
 
 const props = defineProps<{
   modelValue: boolean
@@ -51,8 +51,8 @@ const fetchLocationDetails = async () => {
   }
 }
 
-const handleFileSelect = (files: File[]) => {
-  selectedFiles.value = files
+const handleFileSelect = (files: File | File[]) => {
+  selectedFiles.value = Array.isArray(files) ? files : files ? [files] : []
   errorMessage.value = ''
 }
 
@@ -81,7 +81,7 @@ const uploadImages = async () => {
     }
     
     // Upload compressed images
-    await locationsStore.addPhotosToLocation(props.locationId!, compressedFiles)
+    await locationsStore.uploadLocationPhotos(props.locationId!, compressedFiles)
     
     // Clear selection and refresh
     selectedFiles.value = []
@@ -106,7 +106,11 @@ const handleDelete = async () => {
   if (!imageToDelete.value || !props.locationId) return
   
   try {
-    await locationsStore.deleteLocationImage(props.locationId, imageToDelete.value)
+    const imageIndex = location.value.imageUrls.findIndex((img: any) => img.url === imageToDelete.value?.url)
+    if (imageIndex === -1) {
+      throw new Error('Image not found')
+    }
+    await locationsStore.deleteLocationPhoto(props.locationId, imageIndex)
     await fetchLocationDetails()
     emit('images-updated')
   } catch (error) {
@@ -176,7 +180,7 @@ const closeDialog = () => {
           show-size
           :rules="[
             (files) => !files?.length || files.length <= 5 || 'You can upload maximum 5 images at once',
-            (files) => !files?.some(file => file.size > 5000000) || 'Each image must be less than 5MB'
+            (files) => !files?.some((file: File) => file.size > 5000000) || 'Each image must be less than 5MB'
           ]"
           hint="Select up to 5 images (max 5MB each). Images will be compressed before upload."
           persistent-hint
